@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Vita Bot — AI Real Estate Assistant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{
+      font-family:'Inter',sans-serif;
+      background:#06080d;
+      color:#fff;
+      width:100%;height:100%;
+      overflow:hidden;
+    }
+    body::before{
+      content:'';position:fixed;inset:0;
+      background:radial-gradient(ellipse at 70% 80%,rgba(37,99,235,0.1) 0%,transparent 60%),
+                 radial-gradient(ellipse at 30% 20%,rgba(59,130,246,0.05) 0%,transparent 50%);
+      pointer-events:none;z-index:0;
+    }
+    .chat-bubble{
+      position:fixed;
+      bottom:clamp(20px,3vh,30px);right:clamp(20px,3vw,30px);
+      width:clamp(52px,8vw,64px);height:clamp(52px,8vw,64px);
+      background:linear-gradient(135deg,#1e3a8a,#2563eb,#1e40af);
+      background-size:200% 200%;
+      animation:mirrorShine 4s ease infinite;
+      border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      cursor:pointer;z-index:1000;
+      box-shadow:0 8px 32px rgba(37,99,235,0.4),inset 0 1px 0 rgba(255,255,255,0.15);
+      transition:transform 0.3s ease,box-shadow 0.3s ease;
+    }
+    .chat-bubble:hover{
+      transform:scale(1.08);
+      box-shadow:0 12px 40px rgba(37,99,235,0.55),inset 0 1px 0 rgba(255,255,255,0.25);
+    }
+    .chat-bubble svg{width:clamp(20px,4vw,28px);height:clamp(20px,4vw,28px)}
+    .bubble-pulse{
+      position:absolute;width:100%;height:100%;border-radius:50%;
+      background:rgba(37,99,235,0.35);animation:pulse 2.2s infinite;
+    }
+    @keyframes pulse{
+      0%{transform:scale(1);opacity:0.5}
+      100%{transform:scale(1.6);opacity:0}
+    }
+    @keyframes mirrorShine{
+      0%{background-position:0% 50%}
+      50%{background-position:100% 50%}
+      100%{background-position:0% 50%}
+    }
+    .chat-window{
+      position:fixed;
+      bottom:105px;
+      right:clamp(12px,2vw,30px);
+      width:clamp(320px,90vw,400px);
+      max-width:calc(100vw - 20px);
+      height:clamp(420px,65vh,580px);
+      max-height:calc(100vh - 130px);
+      background:linear-gradient(180deg,#0b1120 0%,#0f172a 40%,#0d1525 100%);
+      border-radius:20px;
+      border:1px solid rgba(59,130,246,0.2);
+      box-shadow:0 0 0 1px rgba(59,130,246,0.06),0 24px 80px rgba(0,0,0,0.7),0 0 80px rgba(37,99,235,0.06);
+      display:none;flex-direction:column;z-index:999;overflow:hidden;
+      animation:slideUp 0.3s ease;
+    }
+    .chat-window::before{
+      content:'';position:absolute;inset:0;
+      background:radial-gradient(ellipse at 50% 0%,rgba(59,130,246,0.04) 0%,transparent 70%);
+      pointer-events:none;z-index:0;
+    }
+    .chat-window.open{display:flex}
+    @keyframes slideUp{
+      from{opacity:0;transform:translateY(16px) scale(0.96)}
+      to{opacity:1;transform:translateY(0) scale(1)}
+    }
+    .chat-header{
+      background:linear-gradient(135deg,#1e3a8a,#2563eb,#1e40af);
+      background-size:200% 200%;
+      animation:mirrorShine 4s ease infinite;
+      padding:clamp(12px,2vh,16px) clamp(14px,3vw,20px);
+      display:flex;align-items:center;justify-content:space-between;
+      position:relative;z-index:1;flex-shrink:0;
+    }
+    .chat-header::after{
+      content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+      background:linear-gradient(90deg,transparent,rgba(255,255,255,0.25),transparent);
+    }
+    .agent-info{display:flex;align-items:center;gap:clamp(8px,2vw,12px)}
+    .agent-avatar{
+      width:clamp(34px,6vw,44px);height:clamp(34px,6vw,44px);
+      background:rgba(255,255,255,0.12);border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:700;font-size:clamp(15px,2.5vw,19px);
+      border:1px solid rgba(255,255,255,0.2);color:#fff;flex-shrink:0;
+    }
+    .agent-info strong{display:block;font-size:clamp(13px,2vw,15px);color:#fff;font-weight:600}
+    .online-status{
+      font-size:clamp(10px,1.5vw,11px);color:#93c5fd;
+      display:flex;align-items:center;gap:5px;
+    }
+    .online-status::before{
+      content:'';width:clamp(5px,1vw,7px);height:clamp(5px,1vw,7px);
+      background:#60a5fa;border-radius:50%;animation:pulse 2s infinite;
+      box-shadow:0 0 6px rgba(96,165,250,0.6);
+    }
+    .close-btn{
+      background:rgba(255,255,255,0.08);border:none;color:#fff;
+      font-size:clamp(14px,2.5vw,16px);cursor:pointer;
+      padding:clamp(5px,1vw,7px) clamp(9px,1.5vw,11px);border-radius:8px;transition:all 0.2s;z-index:1;
+    }
+    .close-btn:hover{background:rgba(255,255,255,0.18)}
+    .chat-messages{
+      flex:1;overflow-y:auto;
+      padding:clamp(14px,2vh,20px);
+      display:flex;flex-direction:column;gap:clamp(8px,1.5vh,12px);
+      scrollbar-width:thin;scrollbar-color:#1e3a8a transparent;
+      -webkit-overflow-scrolling:touch;position:relative;z-index:1;
+    }
+    .chat-messages::-webkit-scrollbar{width:4px}
+    .chat-messages::-webkit-scrollbar-thumb{
+      background:linear-gradient(180deg,#1e3a8a,#2563eb);border-radius:4px;
+    }
+    .message{
+      max-width:82%;padding:clamp(10px,1.5vh,13px) clamp(12px,2vw,16px);
+      border-radius:clamp(12px,2vw,16px);font-size:clamp(12px,2vw,14px);
+      line-height:1.6;animation:fadeIn 0.3s ease;word-wrap:break-word;overflow-wrap:break-word;
+    }
+    @keyframes fadeIn{
+      from{opacity:0;transform:translateY(6px)}
+      to{opacity:1;transform:translateY(0)}
+    }
+    .message.bot{
+      background:rgba(30,64,175,0.1);border:1px solid rgba(59,130,246,0.15);
+      color:#cbd5e1;align-self:flex-start;border-bottom-left-radius:4px;
+    }
+    .message.user{
+      background:linear-gradient(135deg,#1e40af,#2563eb);
+      background-size:200% 200%;
+      animation:mirrorShine 4s ease infinite,fadeIn 0.3s ease;
+      color:#fff;align-self:flex-end;border-bottom-right-radius:4px;
+      box-shadow:0 4px 16px rgba(37,99,235,0.3);
+    }
+    .typing-indicator{
+      padding:0 clamp(14px,2vw,20px) clamp(8px,1vh,12px);
+      display:flex;gap:5px;align-items:center;flex-shrink:0;position:relative;z-index:1;
+    }
+    .typing-indicator span{
+      width:clamp(6px,1.2vw,8px);height:clamp(6px,1.2vw,8px);
+      background:#2563eb;border-radius:50%;animation:bounce 1.2s infinite;
+      box-shadow:0 0 6px rgba(37,99,235,0.5);
+    }
+    .typing-indicator span:nth-child(2){animation-delay:0.2s}
+    .typing-indicator span:nth-child(3){animation-delay:0.4s}
+    @keyframes bounce{
+      0%,60%,100%{transform:translateY(0)}
+      30%{transform:translateY(-8px)}
+    }
+    .chat-input-area{
+      padding:clamp(10px,1.5vh,16px) clamp(14px,2vw,20px);
+      display:flex;gap:clamp(6px,1vw,10px);
+      border-top:1px solid rgba(59,130,246,0.1);
+      background:rgba(15,23,42,0.8);backdrop-filter:blur(10px);
+      flex-shrink:0;position:relative;z-index:1;
+    }
+    .chat-input-area input{
+      flex:1;min-width:0;
+      background:rgba(30,64,175,0.08);border:1px solid rgba(59,130,246,0.15);
+      border-radius:clamp(10px,1.5vw,12px);
+      padding:clamp(10px,1.5vh,13px) clamp(12px,2vw,16px);
+      color:#e2e8f0;font-size:clamp(13px,2vw,14px);
+      font-family:'Inter',sans-serif;outline:none;transition:all 0.2s;
+    }
+    .chat-input-area input:focus{
+      border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,0.1);
+      background:rgba(30,64,175,0.14);
+    }
+    .chat-input-area input::placeholder{color:#475569}
+    .chat-input-area button{
+      width:clamp(40px,7vw,46px);height:clamp(40px,7vw,46px);
+      background:linear-gradient(135deg,#1e40af,#2563eb);
+      background-size:200% 200%;animation:mirrorShine 4s ease infinite;
+      border:none;border-radius:clamp(10px,1.5vw,12px);cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+      transition:all 0.2s ease;flex-shrink:0;
+      box-shadow:0 4px 16px rgba(37,99,235,0.3);
+    }
+    .chat-input-area button:hover{
+      transform:scale(1.05);box-shadow:0 6px 24px rgba(37,99,235,0.5);
+    }
+    .chat-input-area button svg{width:clamp(15px,2.5vw,18px);height:clamp(15px,2.5vw,18px)}
+    @media(max-width:600px){
+      .chat-window{
+        width:100vw;height:100vh;height:100dvh;bottom:0;right:0;
+        border-radius:0;border:none;max-width:100vw;max-height:100vh;max-height:100dvh;
+      }
+      .chat-bubble{bottom:clamp(14px,2vh,20px);right:clamp(14px,2vw,20px)}
+    }
+    @media(max-height:700px) and (min-width:601px){
+      .chat-window{height:80vh;height:80dvh;bottom:100px}
+    }
+    @media(max-width:350px){
+      .chat-window{width:100vw;right:0;border-radius:0}
+      .message{max-width:90%;font-size:12px}
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-bubble" onclick="toggleChat()">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12c0 1.85.5 3.58 1.37 5.07L2 22l4.93-1.37C8.42 21.5 10.15 22 12 22c5.52 0 10-4.48 10-10S17.52 2 12 2zm-1 13H7v-2h4v2zm6 0h-4v-2h4v2zm0-4H7V9h10v2z"/></svg>
+    <div class="bubble-pulse"></div>
+  </div>
+  <div class="chat-window" id="chatWindow">
+    <div class="chat-header">
+      <div class="agent-info">
+        <div class="agent-avatar">V</div>
+        <div><strong>Vita AI</strong><span class="online-status">Online</span></div>
+      </div>
+      <button class="close-btn" onclick="toggleChat()">✕</button>
+    </div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="typing-indicator" id="typingIndicator" style="display:none"><span></span><span></span><span></span></div>
+    <div class="chat-input-area">
+      <input type="text" id="userInput" placeholder="Type your message..." onkeypress="handleKeyPress(event)" autocomplete="off"/>
+      <button onclick="sendMessage()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" width="18" height="18"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+    </div>
+  </div>
+  <script>
+    let messages=[],isOpen=!1;
+    function toggleChat(){
+      const e=document.getElementById("chatWindow");
+      isOpen=!isOpen,isOpen?(e.classList.add("open"),0===messages.length&&setTimeout(()=>{addMessage("bot","Hi there! I'm Vita, your AI real estate assistant. How can I help you today?")},400)):e.classList.remove("open")
+    }
+    function handleKeyPress(e){"Enter"===e.key&&sendMessage()}
+    async function sendMessage(){
+      const e=document.getElementById("userInput"),t=e.value.trim();
+      if(!t)return;
+      addMessage("user",t),e.value="",messages.push({role:"user",content:t}),showTyping(!0);
+      try{
+        const e=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages})}),
+        n=await e.json();
+        showTyping(!1);
+        const s=n.message||"Let me connect you with an agent who can help with that.";
+        addMessage("bot",s),messages.push({role:"assistant",content:s}),n.leadData&&(window._leadSaved||(window._leadSaved=!0,saveLead(n.leadData)))
+      }catch(e){showTyping(!1),addMessage("bot","I'm having trouble connecting. Please try again in a moment.")}
+    }
+    function addMessage(e,t){
+      const n=document.getElementById("chatMessages"),s=document.createElement("div");
+      s.classList.add("message",e),s.textContent=t,n.appendChild(s),n.scrollTop=n.scrollHeight
+    }
+    function showTyping(e){
+      document.getElementById("typingIndicator").style.display=e?"flex":"none",
+      document.getElementById("chatMessages").scrollTop=document.getElementById("chatMessages").scrollHeight
+    }
+    async function saveLead(e){
+      try{await fetch("/api/save-lead",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(e)})}catch(e){console.error("Lead save failed:",e)}
+    }
+  </script>
+</body>
+</html>
